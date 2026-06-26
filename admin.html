@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>作品集管理后台</title>
+
+<!-- 防止暗黑模式闪烁 -->
+<script>
+(function(){
+  var m = localStorage.getItem('pf_admin_dark_mode');
+  if (m === 'true' || (m === null && window.matchMedia('(prefers-color-scheme:dark)').matches)) {
+    document.documentElement.classList.add('dark');
+  }
+})();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   重置 & 基础样式
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  transition: background 0.3s, color 0.3s;
+  min-height: 100vh;
+}
+a { color: var(--accent); }
+img { max-width: 100%; }
+button { cursor: pointer; font: inherit; }
+input, textarea, select {
+  font: inherit; border: 1.5px solid var(--border);
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--bg-primary); color: var(--text-primary);
+  transition: border-color var(--transition-fast);
+  width: 100%;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+label { font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 6px; color: var(--text-secondary); }
+textarea { resize: vertical; min-height: 80px; }
+
+::selection { background: var(--accent); color: #fff; }
+
+/* ============================================================
+   CSS 自定义属性 — 主题变量
+   ============================================================ */
+:root {
+  --bg-primary:       #ffffff;
+  --bg-secondary:     #f8fafc;
+  --bg-tertiary:      #f1f5f9;
+  --text-primary:     #0f172a;
+  --text-secondary:   #475569;
+  --text-muted:       #94a3b8;
+  --accent:           #6366f1;
+  --accent-hover:     #4f46e5;
+  --accent-light:     #eef2ff;
+  --accent-glow:      rgba(99,102,241,0.15);
+  --border:           #e2e8f0;
+  --shadow-sm:        0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:        0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg:        0 12px 40px rgba(0,0,0,0.08);
+  --radius-sm:        6px;
+  --radius-md:        12px;
+  --radius-lg:        16px;
+  --radius-full:      9999px;
+  --transition-fast:  150ms ease;
+  --transition-base:  300ms ease;
+  --danger:           #ef4444;
+  --danger-hover:     #dc2626;
+  --danger-light:     #fef2f2;
+  --success:          #16a34a;
+  --success-light:    #dcfce7;
+  --warning:          #f59e0b;
+  --warning-light:    #fffbeb;
+  --font-mono:        'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* 暗黑模式变量覆盖 */
+html.dark {
+  --bg-primary:       #0b1121;
+  --bg-secondary:     #111827;
+  --bg-tertiary:      #1e293b;
+  --text-primary:     #f1f5f9;
+  --text-secondary:   #94a3b8;
+  --text-muted:       #64748b;
+  --accent:           #818cf8;
+  --accent-hover:     #6366f1;
+  --accent-light:     #1e1b4b;
+  --accent-glow:      rgba(129,140,248,0.2);
+  --border:           #1e293b;
+  --shadow-sm:        0 1px 2px rgba(0,0,0,0.2);
+  --shadow-md:        0 4px 16px rgba(0,0,0,0.3);
+  --shadow-lg:        0 12px 40px rgba(0,0,0,0.4);
+  --danger:           #f87171;
+  --danger-hover:     #ef4444;
+  --danger-light:     #450a0a;
+  --success:          #4ade80;
+  --success-light:    #14532d;
+  --warning:          #fbbf24;
+  --warning-light:    #451a03;
+}
+
+/* ============================================================
+   表单 & 工具类
+   ============================================================ */
+.form-group { margin-bottom: 18px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+
+/* 按钮 */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 22px; border-radius: var(--radius-sm);
+  font-weight: 600; font-size: 0.9rem;
+  transition: all var(--transition-fast); border: none;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-primary); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: var(--danger-hover); }
+.btn-ghost { background: transparent; color: var(--text-secondary); padding: 6px 12px; }
+.btn-ghost:hover { color: var(--accent); background: var(--accent-light); }
+.btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+.btn-icon { width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); font-size: 1rem; }
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.card {
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 20px;
+  transition: all var(--transition-fast);
+}
+.card:hover { box-shadow: var(--shadow-md); }
+
+/* 状态标记 */
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: var(--radius-full);
+  font-size: 0.75rem; font-weight: 600;
+}
+.badge-success { background: var(--success-light); color: var(--success); }
+.badge-warning { background: var(--warning-light); color: var(--warning); }
+
+/* ============================================================
+   登录界面
+   ============================================================ */
+#login-screen {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-primary);
+}
+.login-card {
+  width: 100%; max-width: 400px; padding: 40px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+.login-card h1 { font-size: 1.6rem; margin-bottom: 8px; }
+.login-card .subtitle { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 28px; }
+.login-card .reset-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 20px; line-height: 1.5; }
+
+/* ============================================================
+   顶部设置栏
+   ============================================================ */
+#settings-bar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 12px 24px; border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary); position: sticky; top: 0; z-index: 100;
+}
+/* 同步状态指示灯 */
+#settings-bar .sync-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  background: var(--text-muted);
+}
+#settings-bar .sync-dot.saved { background: var(--success); }
+#settings-bar .sync-dot.saving { background: var(--warning); animation: pulse 0.8s infinite; }
+#settings-bar .sync-dot.error { background: var(--danger); }
+#settings-bar .sync-dot.unsaved { background: var(--text-muted); }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+#bin-info { font-size: 0.82rem; color: var(--text-muted); font-family: var(--font-mono); }
+#settings-bar .spacer { flex: 1; }
+#settings-bar .btn { white-space: nowrap; }
+
+/* ============================================================
+   标签页导航
+   ============================================================ */
+.tab-nav {
+  display: flex; gap: 2px; padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-primary); overflow-x: auto;
+  position: sticky; top: 57px; z-index: 99;
+}
+.tab-btn {
+  padding: 14px 22px; border: none; background: none;
+  font-size: 0.9rem; font-weight: 600; color: var(--text-muted);
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ============================================================
+   标签页面板
+   ============================================================ */
+.tab-panel { display: none; padding: 32px 24px; max-width: 1000px; }
+.tab-panel.active { display: block; }
+.tab-panel h2 { font-size: 1.4rem; margin-bottom: 6px; }
+.tab-panel .panel-desc { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 28px; }
+
+/* 面板中的子标题行 */
+.section-subhead {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 28px 0 14px;
+  padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+.section-subhead h3 { font-size: 1.05rem; }
+
+/* 列表条目（如工作经历、教育背景） */
+.list-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 18px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  margin-bottom: 10px; transition: all var(--transition-fast);
+}
+.list-item:hover { box-shadow: var(--shadow-sm); }
+.list-item .item-info { flex: 1; min-width: 0; }
+.list-item .item-title { font-weight: 600; font-size: 0.92rem; }
+.list-item .item-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+.list-item .item-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* 技能行内编辑 */
+.skill-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+  padding: 8px 12px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.skill-row input { width: auto; }
+.skill-row .skill-name-input { flex: 2; }
+.skill-row .skill-cat-input { flex: 1; }
+.skill-row .skill-level-input { width: 80px; text-align: center; }
+.skill-row .skill-label { font-size: 0.8rem; color: var(--text-muted); min-width: 36px; text-align: right; }
+
+/* 社交链接行 */
+.social-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  padding: 8px 12px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.social-row select { width: 120px; flex-shrink: 0; }
+.social-row input { flex: 1; }
+
+/* 分类编辑行 */
+.cat-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+}
+.cat-row input { max-width: 200px; }
+
+/* ============================================================
+   模态框
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 5000;
+  background: rgba(0,0,0,0.5); display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 60px;
+  animation: fadeIn 0.2s ease;
+}
+.modal-overlay.hidden { display: none; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal-content {
+  background: var(--bg-primary); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-xl);
+  width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto;
+  padding: 32px; animation: slideUp 0.25s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-content h3 { margin-bottom: 20px; font-size: 1.2rem; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--border); }
+
+/* 管理后台项目卡片 */
+.portfolio-admin-card {
+  display: flex; gap: 16px; padding: 16px; background: var(--bg-secondary);
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  margin-bottom: 12px; transition: all var(--transition-fast);
+}
+.portfolio-admin-card:hover { box-shadow: var(--shadow-md); }
+.portfolio-admin-card .thumb {
+  width: 100px; height: 70px; border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; overflow: hidden;
+}
+.portfolio-admin-card .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.portfolio-admin-card .info { flex: 1; min-width: 0; }
+.portfolio-admin-card .actions { display: flex; gap: 4px; flex-shrink: 0; align-items: flex-start; }
+
+/* ============================================================
+   数据管理页
+   ============================================================ */
+#raw-json {
+  width: 100%; min-height: 400px; font-family: var(--font-mono);
+  font-size: 0.82rem; line-height: 1.6; padding: 16px;
+  background: var(--bg-secondary); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  resize: vertical;
+}
+
+/* ============================================================
+   消息提示 Toast
+   ============================================================ */
+#toast-container {
+  position: fixed; top: 20px; right: 20px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  padding: 12px 20px; border-radius: var(--radius-md);
+  font-size: 0.85rem; font-weight: 500; color: #fff;
+  animation: slideInRight 0.3s ease;
+  box-shadow: var(--shadow-lg); max-width: 360px;
+}
+.toast.success { background: #16a34a; }
+.toast.error { background: #dc2626; }
+.toast.info { background: var(--accent); }
+@keyframes slideInRight { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ============================================================
+   响应式
+   ============================================================ */
+@media (max-width: 767px) {
+  .tab-btn { padding: 10px 14px; font-size: 0.8rem; }
+  .tab-panel { padding: 20px 14px; }
+  .form-row { grid-template-columns: 1fr; }
+  #settings-bar { gap: 8px; }
+  #settings-bar .spacer { display: none; }
+  .modal-content { margin: 0 10px; padding: 20px; }
+  .list-item { flex-direction: column; align-items: flex-start; }
+  .list-item .item-actions { width: 100%; justify-content: flex-end; }
+  .portfolio-admin-card { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     登录界面
+     ============================================================ -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1>🔐 管理员登录</h1>
+    <p class="subtitle" id="login-subtitle">请设置管理密码</p>
+    <form id="login-form">
+      <div class="form-group">
+        <input type="password" id="login-password" placeholder="输入密码" required autofocus>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="login-btn">确 定</button>
+    </form>
+    <p class="reset-hint">💡 忘记密码？请在浏览器 DevTools 中清除此网站的 localStorage，然后重新设置密码。<br><small>（注意：本地草稿和 API Key 也会被清除）</small></p>
+  </div>
+</div>
+
+<!-- ============================================================
+     主应用区域（登录后显示）
+     ============================================================ -->
+<div id="app" style="display:none;">
+
+  <!-- 顶部设置栏 -->
+  <header id="settings-bar">
+    <span class="sync-dot" id="sync-dot" title="同步状态"></span>
+    <span id="bin-info">未配置 Bin</span>
+    <span class="spacer"></span>
+    <button class="btn btn-outline btn-sm" id="btn-fetch">📥 从 JSONBin 加载</button>
+    <button class="btn btn-primary btn-sm" id="btn-save">💾 保存到 JSONBin</button>
+    <button class="btn btn-ghost btn-icon" id="btn-settings" title="设置">⚙️</button>
+    <button class="btn btn-ghost btn-icon" id="btn-theme" title="切换主题">🌙</button>
+  </header>
+
+  <!-- 标签页导航 -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="personal">👤 个人信息</button>
+    <button class="tab-btn" data-tab="resume">📄 简历</button>
+    <button class="tab-btn" data-tab="portfolio">🖼️ 作品集</button>
+    <button class="tab-btn" data-tab="contact">📞 联系方式</button>
+    <button class="tab-btn" data-tab="data">🗄️ 数据管理</button>
+  </nav>
+
+  <!-- ============================================================
+       标签页: 个人信息
+       ============================================================ -->
+  <section class="tab-panel active" id="tab-personal">
+    <h2>个人信息</h2>
+    <p class="panel-desc">编辑你在作品集网站上展示的基本信息</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>姓名（中文）</label>
+        <input type="text" id="p-name" placeholder="张三">
+      </div>
+      <div class="form-group">
+        <label>姓名（英文）</label>
+        <input type="text" id="p-nameEn" placeholder="Zhang San">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>职位 / 头衔</label>
+      <input type="text" id="p-title" placeholder="全栈工程师">
+    </div>
+    <div class="form-group">
+      <label>个人简介</label>
+      <textarea id="p-bio" rows="3" placeholder="简短介绍你自己..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>头像 URL</label>
+        <input type="url" id="p-avatar" placeholder="https://example.com/avatar.jpg">
+        <div class="form-hint">留空则显示姓名首字</div>
+      </div>
+      <div class="form-group">
+        <label>简历 PDF URL</label>
+        <input type="url" id="p-resumePdfUrl" placeholder="https://example.com/resume.pdf">
+        <div class="form-hint">用户点击「下载简历」时跳转到此链接</div>
+      </div>
+    </div>
+
+    <div class="section-subhead">
+      <h3>社交链接</h3>
+      <button class="btn btn-outline btn-sm" id="btn-add-social">+ 添加</button>
+    </div>
+    <div id="social-list"></div>
+  </section>
+
+  <!-- ============================================================
+       标签页: 简历管理
+       ============================================================ -->
+  <section class="tab-panel" id="tab-resume">
+    <h2>简历管理</h2>
+    <p class="panel-desc">管理工作经历、教育背景和技能</p>
+
+    <div class="form-group">
+      <label>个人总结</label>
+      <textarea id="r-summary" rows="2" placeholder="一句话概括你的专业背景..."></textarea>
+    </div>
+
+    <div class="section-subhead">
+      <h3>💼 工作经历</h3>
+      <button class="btn btn-outline btn-sm" id="btn-add-work">+ 添加</button>
+    </div>
+    <div id="work-list"></div>
+
+    <div class="section-subhead">
+      <h3>🎓 教育背景</h3>
+      <button class="btn btn-outline btn-sm" id="btn-add-edu">+ 添加</button>
+    </div>
+    <div id="edu-list"></div>
+
+    <div class="section-subhead">
+      <h3>🛠️ 技能</h3>
+      <button class="btn btn-outline btn-sm" id="btn-add-skill">+ 添加</button>
+    </div>
+    <div id="skill-list"></div>
+  </section>
+
+  <!-- ============================================================
+       标签页: 作品集管理
+       ============================================================ -->
+  <section class="tab-panel" id="tab-portfolio">
+    <h2>作品集管理</h2>
+    <p class="panel-desc">管理展示项目和分类</p>
+
+    <div class="section-subhead">
+      <h3>📂 分类</h3>
+      <button class="btn btn-outline btn-sm" id="btn-add-cat">+ 添加分类</button>
+    </div>
+    <div id="cat-list"></div>
+    <div class="form-hint" style="margin-bottom:20px;">「全部」是默认分类，无需添加</div>
+
+    <div class="section-subhead">
+      <h3>🖼️ 项目</h3>
+      <button class="btn btn-primary btn-sm" id="btn-add-project">+ 添加项目</button>
+    </div>
+    <div id="portfolio-admin-list"></div>
+  </section>
+
+  <!-- ============================================================
+       标签页: 联系方式
+       ============================================================ -->
+  <section class="tab-panel" id="tab-contact">
+    <h2>联系方式</h2>
+    <p class="panel-desc">编辑联系方式与合作状态</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>邮箱</label>
+        <input type="email" id="c-email" placeholder="hello@example.com">
+      </div>
+      <div class="form-group">
+        <label>电话</label>
+        <input type="text" id="c-phone" placeholder="+86 138-0000-0000">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>微信</label>
+        <input type="text" id="c-wechat" placeholder="wechat_id">
+      </div>
+      <div class="form-group">
+        <label>位置（中文）</label>
+        <input type="text" id="c-location" placeholder="北京, 中国">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>位置（英文）</label>
+        <input type="text" id="c-locationEn" placeholder="Beijing, China">
+      </div>
+      <div class="form-group">
+        <label>合作状态</label>
+        <input type="text" id="c-availableFor" placeholder="开放合作机会">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>回复时间</label>
+      <input type="text" id="c-responseTime" placeholder="24小时内回复">
+    </div>
+  </section>
+
+  <!-- ============================================================
+       标签页: 数据管理
+       ============================================================ -->
+  <section class="tab-panel" id="tab-data">
+    <h2>数据管理</h2>
+    <p class="panel-desc">备份、恢复或直接编辑原始 JSON 数据</p>
+
+    <div class="form-group">
+      <label>原始 JSON 数据</label>
+      <textarea id="raw-json" spellcheck="false"></textarea>
+    </div>
+
+    <div class="form-hint" id="json-validation" style="margin-bottom:16px;"></div>
+
+    <div class="btn-group">
+      <button class="btn btn-outline" id="btn-validate-json">✅ 校验 JSON</button>
+      <button class="btn btn-primary" id="btn-apply-json">📥 应用修改</button>
+    </div>
+
+    <div class="section-subhead" style="margin-top:32px;">
+      <h3>导入 & 导出</h3>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline" id="btn-download-backup">📥 下载备份</button>
+      <button class="btn btn-outline" id="btn-restore-backup">📤 恢复备份</button>
+      <input type="file" id="restore-file-input" accept=".json" style="display:none;">
+      <button class="btn btn-danger" id="btn-reset-default">🔄 重置为默认</button>
+    </div>
+  </section>
+
+</div><!-- /#app -->
+
+<!-- 模态框容器 -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal-content" id="modal-content"></div>
+</div>
+
+<!-- 消息提示容器 -->
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     主脚本
+     ============================================================ -->
+<script>
+// ============================================================
+// 模块: 配置常量
+// ============================================================
+const CONFIG = {
+  JSONBIN_API_URL: 'https://api.jsonbin.io/v3/b/',
+  STORAGE_KEYS: {
+    PASSWORD_HASH: 'pf_admin_password_hash',    // 密码 SHA-256 哈希
+    MASTER_KEY:    'pf_jsonbin_master_key',     // JSONBin X-Master-Key
+    BIN_ID:        'pf_jsonbin_bin_id',         // JSONBin Bin ID
+    DRAFT:         'pf_admin_draft',            // 本地草稿
+    LOGGED_IN:     'pf_admin_logged_in',        // 登录会话标记
+    DARK_MODE:     'pf_admin_dark_mode',        // 暗黑模式
+  },
+  AUTOSAVE_DEBOUNCE_MS: 800, // 自动保存防抖间隔（毫秒）
+};
+
+// ============================================================
+// 模块: 全局状态
+// ============================================================
+const state = {
+  draft: null,          // 当前工作副本（完整的作品集 JSON）
+  originalHash: '',     // 上次保存时的哈希，用于检测未保存更改
+  syncStatus: 'idle',   // 同步状态: idle | saving | saved | error | unsaved
+};
+
+// ============================================================
+// 模块: 工具函数
+// ============================================================
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+
+/** HTML 转义，防止 XSS */
+function escapeHTML(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/** 生成唯一 ID */
+function uid() {
+  return crypto.randomUUID ? crypto.randomUUID() : 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+}
+
+/** 防抖函数 */
+function debounce(fn, ms) { let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }; }
+
+// ============================================================
+// 模块: 消息提示 Toast
+// ============================================================
+function showToast(msg, type) {
+  const container = $('#toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  // 2.5 秒后自动消失
+  setTimeout(() => {
+    toast.style.opacity = '0'; toast.style.transform = 'translateX(120%)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
+// ============================================================
+// 模块: 认证 — 密码管理
+// ============================================================
+/** 使用 SHA-256 对密码进行哈希 */
+async function hashPassword(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** 获取存储的密码哈希 */
+function getStoredHash() {
+  return localStorage.getItem(CONFIG.STORAGE_KEYS.PASSWORD_HASH);
+}
+
+/** 检查是否已登录 */
+function checkLogin() {
+  const loggedIn = sessionStorage.getItem(CONFIG.STORAGE_KEYS.LOGGED_IN);
+  return loggedIn === 'true' && !!getStoredHash();
+}
+
+/** 显示登录界面 */
+function showLogin(needsSetup) {
+  $('#app').style.display = 'none';
+  $('#login-screen').style.display = '';
+  $('#login-subtitle').textContent = needsSetup ? '请设置管理密码' : '请输入管理密码';
+  $('#login-password').value = '';
+  $('#login-password').focus();
+}
+
+/** 隐藏登录界面 */
+function hideLogin() {
+  sessionStorage.setItem(CONFIG.STORAGE_KEYS.LOGGED_IN, 'true');
+  $('#login-screen').style.display = 'none';
+  $('#app').style.display = '';
+}
+
+// ============================================================
+// 模块: API — JSONBin 读写
+// ============================================================
+/** 获取已保存的 Master Key */
+function getMasterKey() {
+  return localStorage.getItem(CONFIG.STORAGE_KEYS.MASTER_KEY) || '';
+}
+
+/** 获取已保存的 Bin ID */
+function getBinId() {
+  return localStorage.getItem(CONFIG.STORAGE_KEYS.BIN_ID) || '';
+}
+
+/** 读取公开 Bin 数据（无需 API Key） */
+async function readBin() {
+  const binId = getBinId();
+  if (!binId) throw new Error('未配置 Bin ID，请先保存数据或手动设置');
+  const resp = await fetch(CONFIG.JSONBIN_API_URL + binId, {
+    headers: { 'Content-Type': 'application/json' }
+  });
+  if (!resp.ok) throw new Error(`读取失败: HTTP ${resp.status}`);
+  const json = await resp.json();
+  return json.record || json;
+}
+
+/** 创建新 Bin */
+async function createBin(json) {
+  const masterKey = getMasterKey();
+  if (!masterKey) throw new Error('未配置 API Key，请在设置中填入');
+  const resp = await fetch(CONFIG.JSONBIN_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': masterKey,
+      'X-Bin-Name': 'portfolio-data',
+      'X-Bin-Private': 'false',  // 公开 Bin，展示页无需 Key 即可读取
+    },
+    body: JSON.stringify(json),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || `创建失败: HTTP ${resp.status}`);
+  }
+  const result = await resp.json();
+  const binId = result.metadata?.id;
+  if (binId) localStorage.setItem(CONFIG.STORAGE_KEYS.BIN_ID, binId);
+  return result;
+}
+
+/** 更新已有 Bin */
+async function updateBin(json) {
+  const binId = getBinId();
+  const masterKey = getMasterKey();
+  if (!binId) throw new Error('未配置 Bin ID');
+  if (!masterKey) throw new Error('未配置 API Key');
+  const resp = await fetch(CONFIG.JSONBIN_API_URL + binId, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': masterKey,
+    },
+    body: JSON.stringify(json),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.message || `更新失败: HTTP ${resp.status}`);
+  }
+  return resp.json();
+}
+
+/** 保存到 JSONBin：有 Bin ID 则更新，无则创建 */
+async function saveToJsonBin(json) {
+  const binId = getBinId();
+  if (binId) {
+    return updateBin(json);
+  } else {
+    return createBin(json);
+  }
+}
+
+// ============================================================
+// 模块: 草稿管理（localStorage 自动保存）
+// ============================================================
+/** 从 localStorage 加载草稿，失败则返回默认数据 */
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(CONFIG.STORAGE_KEYS.DRAFT);
+    if (raw) {
+      state.draft = JSON.parse(raw);
+      return true;
+    }
+  } catch {}
+  // 无草稿 — 使用默认模板
+  state.draft = getDefaultData();
+  return false;
+}
+
+/** 收集表单数据并保存草稿到 localStorage */
+function saveDraft(data) {
+  try {
+    const json = data || collectAll();
+    localStorage.setItem(CONFIG.STORAGE_KEYS.DRAFT, JSON.stringify(json));
+    state.draft = json;
+    updateOriginalHash(json);
+    updateSyncStatus('unsaved');
+  } catch (e) {
+    showToast('localStorage 不可用，草稿自动保存失败', 'error');
+  }
+}
+
+/** 防抖自动保存 */
+const autoSaveDraft = debounce(() => saveDraft(), CONFIG.AUTOSAVE_DEBOUNCE_MS);
+
+/** 更新基准哈希（用于检测未保存更改） */
+function updateOriginalHash(data) {
+  state.originalHash = JSON.stringify(data || state.draft);
+}
+
+/** 检测是否有未保存的更改 */
+function hasUnsavedChanges() {
+  return JSON.stringify(state.draft) !== state.originalHash;
+}
+
+// ============================================================
+// 模块: 同步状态指示
+// ============================================================
+function updateSyncStatus(status) {
+  state.syncStatus = status;
+  const dot = $('#sync-dot');
+  if (dot) {
+    dot.className = 'sync-dot ' + status;
+  }
+  const info = $('#bin-info');
+  const binId = getBinId();
+  if (info) {
+    info.textContent = binId ? `Bin: ${binId.substring(0,12)}...` : '未配置 Bin';
+  }
+}
+
+// ============================================================
+// 模块: 渲染 — 个人信息
+// ============================================================
+function renderPersonalTab() {
+  const p = state.draft.personal || {};
+  $('#p-name').value = p.name || '';
+  $('#p-nameEn').value = p.nameEn || '';
+  $('#p-title').value = p.title || '';
+  $('#p-bio').value = p.bio || '';
+  $('#p-avatar').value = p.avatar || '';
+  $('#p-resumePdfUrl').value = p.resumePdfUrl || '';
+  renderSocialLinks();
+}
+
+/** 渲染社交链接编辑行 */
+function renderSocialLinks() {
+  const links = state.draft.personal?.socialLinks || [];
+  const container = $('#social-list');
+  if (!container) return;
+  container.innerHTML = links.map((s, i) => `
+    <div class="social-row">
+      <select data-social="${i}" data-field="platform">
+        <option value="GitHub" ${s.platform === 'GitHub' ? 'selected' : ''}>GitHub</option>
+        <option value="LinkedIn" ${s.platform === 'LinkedIn' ? 'selected' : ''}>LinkedIn</option>
+        <option value="Twitter" ${s.platform === 'Twitter' ? 'selected' : ''}>Twitter</option>
+        <option value="Email" ${s.platform === 'Email' ? 'selected' : ''}>Email</option>
+        <option value="Website" ${s.platform === 'Website' ? 'selected' : ''}>Website</option>
+        <option value="WeChat" ${s.platform === 'WeChat' ? 'selected' : ''}>微信</option>
+        <option value="Zhihu" ${s.platform === 'Zhihu' ? 'selected' : ''}>知乎</option>
+        <option value="Juejin" ${s.platform === 'Juejin' ? 'selected' : ''}>掘金</option>
+        <option value="Bilibili" ${s.platform === 'Bilibili' ? 'selected' : ''}>B站</option>
+      </select>
+      <select data-social="${i}" data-field="icon">
+        <option value="github" ${s.icon === 'github' ? 'selected' : ''}>github</option>
+        <option value="linkedin" ${s.icon === 'linkedin' ? 'selected' : ''}>linkedin</option>
+        <option value="twitter" ${s.icon === 'twitter' ? 'selected' : ''}>twitter</option>
+        <option value="email" ${s.icon === 'email' ? 'selected' : ''}>email</option>
+        <option value="globe" ${s.icon === 'globe' ? 'selected' : ''}>globe</option>
+        <option value="wechat" ${s.icon === 'wechat' ? 'selected' : ''}>wechat</option>
+      </select>
+      <input type="url" data-social="${i}" data-field="url" value="${escapeHTML(s.url || '')}" placeholder="https://...">
+      <button class="btn btn-danger btn-icon btn-sm" data-delete-social="${i}" title="删除">✕</button>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// 模块: 渲染 — 简历（工作经历/教育/技能）
+// ============================================================
+function renderResumeTab() {
+  const r = state.draft.resume || {};
+  $('#r-summary').value = r.summary || '';
+  renderWorkList();
+  renderEduList();
+  renderSkillList();
+}
+
+/** 渲染工作经历列表 */
+function renderWorkList() {
+  const work = state.draft.resume?.workExperience || [];
+  const container = $('#work-list');
+  if (!container) return;
+  if (work.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);padding:20px;">暂无工作经历，点击上方按钮添加</p>';
+    return;
+  }
+  container.innerHTML = work.map((w, i) => `
+    <div class="list-item">
+      <div class="item-info">
+        <div class="item-title">${escapeHTML(w.role || '未命名职位')} @ ${escapeHTML(w.company || '未知公司')}</div>
+        <div class="item-subtitle">${w.startDate || '?'} — ${w.current ? '至今' : (w.endDate || '?')} ${w.current ? '<span class="badge badge-success">在职</span>' : ''}</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-ghost btn-sm" data-edit-work="${i}">✏️</button>
+        <button class="btn btn-ghost btn-sm" data-move-work="${i}" data-dir="up">⬆</button>
+        <button class="btn btn-ghost btn-sm" data-move-work="${i}" data-dir="down">⬇</button>
+        <button class="btn btn-ghost btn-sm" data-delete-work="${i}" style="color:var(--danger);">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/** 渲染教育背景列表 */
+function renderEduList() {
+  const edu = state.draft.resume?.education || [];
+  const container = $('#edu-list');
+  if (!container) return;
+  if (edu.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);padding:20px;">暂无教育信息，点击上方按钮添加</p>';
+    return;
+  }
+  container.innerHTML = edu.map((e, i) => `
+    <div class="list-item">
+      <div class="item-info">
+        <div class="item-title">${escapeHTML(e.degree || '未命名学位')} @ ${escapeHTML(e.school || '未知学校')}</div>
+        <div class="item-subtitle">${e.startDate || '?'} — ${e.endDate || '?'} ${e.gpa ? '· GPA: '+escapeHTML(e.gpa) : ''}</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-ghost btn-sm" data-edit-edu="${i}">✏️</button>
+        <button class="btn btn-ghost btn-sm" data-delete-edu="${i}" style="color:var(--danger);">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+/** 渲染技能行内编辑列表 */
+function renderSkillList() {
+  const skills = state.draft.resume?.skills || [];
+  const container = $('#skill-list');
+  if (!container) return;
+  if (skills.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);padding:20px;">暂无技能，点击上方按钮添加</p>';
+    return;
+  }
+  container.innerHTML = skills.map((s, i) => `
+    <div class="skill-row">
+      <input type="text" class="skill-name-input" data-skill="${i}" data-field="name" value="${escapeHTML(s.name)}" placeholder="技能名">
+      <input type="text" class="skill-cat-input" data-skill="${i}" data-field="category" value="${escapeHTML(s.category || '')}" placeholder="分类">
+      <input type="number" class="skill-level-input" data-skill="${i}" data-field="level" value="${s.level || 80}" min="0" max="100" title="熟练度 0-100">
+      <span class="skill-label">%</span>
+      <button class="btn btn-danger btn-icon btn-sm" data-delete-skill="${i}" title="删除">✕</button>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// 模块: 渲染 — 作品集
+// ============================================================
+function renderPortfolioTab() {
+  renderCatList();
+  renderPortfolioAdminList();
+}
+
+/** 渲染分类列表 */
+function renderCatList() {
+  const cats = state.draft.portfolioCategories || [];
+  const container = $('#cat-list');
+  if (!container) return;
+  container.innerHTML = cats.map((c, i) => `
+    <div class="cat-row">
+      <input type="text" data-cat="${i}" value="${escapeHTML(c)}" placeholder="分类名称">
+      <button class="btn btn-danger btn-icon btn-sm" data-delete-cat="${i}" title="删除">✕</button>
+    </div>
+  `).join('');
+}
+
+/** 渲染后台项目卡片列表 */
+function renderPortfolioAdminList() {
+  const items = state.draft.portfolioItems || [];
+  const container = $('#portfolio-admin-list');
+  if (!container) return;
+  if (items.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);padding:20px;">暂无项目，点击上方按钮添加</p>';
+    return;
+  }
+  // 按 order 排序
+  const sorted = [...items].sort((a,b) => (a.order??99) - (b.order??99));
+  container.innerHTML = sorted.map((item) => {
+    const origIdx = items.indexOf(item);
+    return `
+    <div class="portfolio-admin-card">
+      <div class="thumb">
+        ${item.image ? `<img src="${escapeHTML(item.image)}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='';">` : ''}
+        <span style="${item.image ? 'display:none' : ''}">📁</span>
+      </div>
+      <div class="info">
+        <div class="item-title">${item.featured ? '⭐ ' : ''}${escapeHTML(item.title || '未命名项目')}</div>
+        <div class="item-subtitle">${escapeHTML(item.category || '未分类')} · ${(item.techStack||[]).join(', ')}</div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" data-edit-project="${origIdx}">✏️</button>
+        <button class="btn btn-ghost btn-sm" data-move-project="${origIdx}" data-dir="up">⬆</button>
+        <button class="btn btn-ghost btn-sm" data-move-project="${origIdx}" data-dir="down">⬇</button>
+        <button class="btn btn-ghost btn-sm" data-delete-project="${origIdx}" style="color:var(--danger);">🗑️</button>
+      </div>
+    </div>
+  `}).join('');
+}
+
+// ============================================================
+// 模块: 渲染 — 联系方式
+// ============================================================
+function renderContactTab() {
+  const c = state.draft.contact || {};
+  $('#c-email').value = c.email || '';
+  $('#c-phone').value = c.phone || '';
+  $('#c-wechat').value = c.wechat || '';
+  $('#c-location').value = c.location || '';
+  $('#c-locationEn').value = c.locationEn || '';
+  $('#c-availableFor').value = c.availableFor || '';
+  $('#c-responseTime').value = c.responseTime || '';
+}
+
+// ============================================================
+// 模块: 数据收集 — 从表单读取所有数据
+// ============================================================
+/** 收集所有表单数据，构建完整 JSON */
+function collectAll() {
+  return {
+    meta: {
+      version: (state.draft.meta?.version || 1),
+      lastUpdated: new Date().toISOString(),
+    },
+    personal: collectPersonal(),
+    resume: collectResume(),
+    portfolioCategories: collectCategories(),
+    portfolioItems: state.draft.portfolioItems || [],
+    contact: collectContact(),
+  };
+}
+
+/** 收集个人信息 */
+function collectPersonal() {
+  const links = [];
+  document.querySelectorAll('[data-social]').forEach(el => {
+    const i = parseInt(el.dataset.social);
+    const field = el.dataset.field;
+    if (!links[i]) links[i] = { platform: '', url: '', icon: '' };
+    links[i][field] = el.value;
+  });
+  return {
+    name: $('#p-name').value,
+    nameEn: $('#p-nameEn').value,
+    title: $('#p-title').value,
+    bio: $('#p-bio').value,
+    avatar: $('#p-avatar').value,
+    resumePdfUrl: $('#p-resumePdfUrl').value,
+    socialLinks: links.filter(Boolean),
+  };
+}
+
+/** 收集简历数据 */
+function collectResume() {
+  // 保留原 ID
+  const existingWork = state.draft.resume?.workExperience || [];
+  const existingEdu = state.draft.resume?.education || [];
+  const existingSkills = state.draft.resume?.skills || [];
+
+  return {
+    summary: $('#r-summary').value,
+    workExperience: existingWork,
+    education: existingEdu,
+    skills: collectSkillsInline(existingSkills),
+  };
+}
+
+/** 收集技能行内编辑数据 */
+function collectSkillsInline(existing) {
+  const skills = [];
+  document.querySelectorAll('[data-skill]').forEach(el => {
+    const i = parseInt(el.dataset.skill);
+    const field = el.dataset.field;
+    if (!skills[i]) skills[i] = { id: existing[i]?.id || uid(), name: '', category: '', level: 80 };
+    if (field === 'level') skills[i][field] = parseInt(el.value) || 0;
+    else skills[i][field] = el.value;
+  });
+  return skills.filter(Boolean);
+}
+
+/** 收集分类列表 */
+function collectCategories() {
+  const cats = [];
+  document.querySelectorAll('[data-cat]').forEach(el => { cats.push(el.value); });
+  return cats.filter(Boolean);
+}
+
+/** 收集联系方式 */
+function collectContact() {
+  return {
+    email: $('#c-email').value,
+    phone: $('#c-phone').value,
+    wechat: $('#c-wechat').value,
+    location: $('#c-location').value,
+    locationEn: $('#c-locationEn').value,
+    availableFor: $('#c-availableFor').value,
+    responseTime: $('#c-responseTime').value,
+  };
+}
+
+/** 从表单收集完整数据（含技能行内编辑） */
+function collectFullFromForms() {
+  const existingSkills = state.draft.resume?.skills || [];
+  return {
+    meta: { version: (state.draft.meta?.version || 1), lastUpdated: new Date().toISOString() },
+    personal: collectPersonal(),
+    resume: {
+      summary: $('#r-summary').value,
+      workExperience: state.draft.resume?.workExperience || [],
+      education: state.draft.resume?.education || [],
+      skills: collectSkillsInline(existingSkills),
+    },
+    portfolioCategories: collectCategories(),
+    portfolioItems: state.draft.portfolioItems || [],
+    contact: collectContact(),
+  };
+}
+
+// ============================================================
+// 模块: 模态框
+// ============================================================
+/** 打开模态框 */
+function openModal(title, bodyHTML, onSave) {
+  const overlay = $('#modal-overlay');
+  const content = $('#modal-content');
+  content.innerHTML = `
+    <h3>${title}</h3>
+    <div class="modal-body">${bodyHTML}</div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="modal-cancel">取消</button>
+      <button class="btn btn-primary" id="modal-save">保存</button>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+  $('#modal-cancel').addEventListener('click', closeModal);
+  $('#modal-save').addEventListener('click', () => { onSave(); closeModal(); });
+  // 点击背景关闭
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+  // ESC 关闭
+  document.addEventListener('keydown', function escHandler(e) {
+    if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', escHandler); }
+  });
+}
+
+/** 关闭模态框 */
+function closeModal() {
+  $('#modal-overlay').classList.add('hidden');
+}
+
+// ============================================================
+// 模块: CRUD — 工作经历
+// ============================================================
+function openWorkModal(idx) {
+  const work = state.draft.resume?.workExperience || [];
+  const item = idx !== undefined && idx >= 0 ? work[idx] : { id: '', company: '', role: '', startDate: '', endDate: '', current: false, description: '', highlights: [] };
+  const isNew = idx === undefined || idx < 0 || !work[idx];
+
+  const bodyHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>公司</label><input type="text" id="mw-company" value="${escapeHTML(item.company||'')}"></div>
+      <div class="form-group"><label>职位</label><input type="text" id="mw-role" value="${escapeHTML(item.role||'')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>开始日期</label><input type="text" id="mw-startDate" value="${escapeHTML(item.startDate||'')}" placeholder="YYYY-MM"></div>
+      <div class="form-group"><label>结束日期</label><input type="text" id="mw-endDate" value="${escapeHTML(item.endDate||'')}" placeholder="留空=至今"></div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="mw-current" ${item.current?'checked':''} style="width:auto;"> 目前在职
+      </label>
+    </div>
+    <div class="form-group"><label>描述</label><textarea id="mw-desc" rows="2">${escapeHTML(item.description||'')}</textarea></div>
+    <div class="form-group"><label>亮点（每行一个）</label><textarea id="mw-highlights" rows="3">${(item.highlights||[]).join('\n')}</textarea></div>
+  `;
+
+  openModal(isNew ? '添加工作经历' : '编辑工作经历', bodyHTML, () => {
+    const newItem = {
+      id: item.id || uid(),
+      company: document.getElementById('mw-company')?.value || '',
+      role: document.getElementById('mw-role')?.value || '',
+      startDate: document.getElementById('mw-startDate')?.value || '',
+      endDate: document.getElementById('mw-endDate')?.value || '',
+      current: document.getElementById('mw-current')?.checked || false,
+      description: document.getElementById('mw-desc')?.value || '',
+      highlights: (document.getElementById('mw-highlights')?.value || '').split('\n').filter(h => h.trim()),
+    };
+    if (!state.draft.resume) state.draft.resume = {};
+    if (!state.draft.resume.workExperience) state.draft.resume.workExperience = [];
+    if (isNew) {
+      state.draft.resume.workExperience.push(newItem);
+    } else {
+      state.draft.resume.workExperience[idx] = newItem;
+    }
+    saveDraft();
+    renderWorkList();
+  });
+}
+
+// ============================================================
+// 模块: CRUD — 教育背景
+// ============================================================
+function openEduModal(idx) {
+  const edu = state.draft.resume?.education || [];
+  const item = idx !== undefined && idx >= 0 ? edu[idx] : { id: '', school: '', degree: '', startDate: '', endDate: '', gpa: '' };
+  const isNew = idx === undefined || idx < 0 || !edu[idx];
+
+  const bodyHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>学校</label><input type="text" id="me-school" value="${escapeHTML(item.school||'')}"></div>
+      <div class="form-group"><label>学位</label><input type="text" id="me-degree" value="${escapeHTML(item.degree||'')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>开始日期</label><input type="text" id="me-startDate" value="${escapeHTML(item.startDate||'')}" placeholder="YYYY-MM"></div>
+      <div class="form-group"><label>结束日期</label><input type="text" id="me-endDate" value="${escapeHTML(item.endDate||'')}" placeholder="YYYY-MM"></div>
+    </div>
+    <div class="form-group"><label>GPA（可选）</label><input type="text" id="me-gpa" value="${escapeHTML(item.gpa||'')}" placeholder="3.8/4.0"></div>
+  `;
+
+  openModal(isNew ? '添加教育背景' : '编辑教育背景', bodyHTML, () => {
+    const newItem = {
+      id: item.id || uid(),
+      school: document.getElementById('me-school')?.value || '',
+      degree: document.getElementById('me-degree')?.value || '',
+      startDate: document.getElementById('me-startDate')?.value || '',
+      endDate: document.getElementById('me-endDate')?.value || '',
+      gpa: document.getElementById('me-gpa')?.value || '',
+    };
+    if (!state.draft.resume) state.draft.resume = {};
+    if (!state.draft.resume.education) state.draft.resume.education = [];
+    if (isNew) {
+      state.draft.resume.education.push(newItem);
+    } else {
+      state.draft.resume.education[idx] = newItem;
+    }
+    saveDraft();
+    renderEduList();
+  });
+}
+
+// ============================================================
+// 模块: CRUD — 作品集项目
+// ============================================================
+function openProjectModal(idx) {
+  const items = state.draft.portfolioItems || [];
+  const item = idx !== undefined && idx >= 0 ? items[idx] : {
+    id: '', title: '', description: '', category: '', image: '',
+    liveUrl: '', githubUrl: '', techStack: [], featured: false, order: items.length,
+    createdAt: new Date().toISOString()
+  };
+  const isNew = idx === undefined || idx < 0 || !items[idx];
+  const cats = (state.draft.portfolioCategories || []).map(c => `<option value="${escapeHTML(c)}" ${item.category===c?'selected':''}>${escapeHTML(c)}</option>`).join('');
+
+  const bodyHTML = `
+    <div class="form-row">
+      <div class="form-group"><label>项目标题</label><input type="text" id="mp-title" value="${escapeHTML(item.title||'')}"></div>
+      <div class="form-group"><label>分类</label><select id="mp-category">${cats}</select></div>
+    </div>
+    <div class="form-group"><label>描述</label><textarea id="mp-desc" rows="2">${escapeHTML(item.description||'')}</textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label>预览图片 URL</label><input type="url" id="mp-image" value="${escapeHTML(item.image||'')}"></div>
+      <div class="form-group"><label>在线地址 URL</label><input type="url" id="mp-liveUrl" value="${escapeHTML(item.liveUrl||'')}"></div>
+    </div>
+    <div class="form-group"><label>GitHub URL</label><input type="url" id="mp-githubUrl" value="${escapeHTML(item.githubUrl||'')}"></div>
+    <div class="form-group"><label>技术栈（逗号分隔）</label><input type="text" id="mp-techStack" value="${(item.techStack||[]).join(', ')}"></div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="mp-featured" ${item.featured?'checked':''} style="width:auto;"> ⭐ 精选项目
+      </label>
+    </div>
+  `;
+
+  openModal(isNew ? '添加项目' : '编辑项目', bodyHTML, () => {
+    const newItem = {
+      id: item.id || uid(),
+      title: document.getElementById('mp-title')?.value || '',
+      description: document.getElementById('mp-desc')?.value || '',
+      category: document.getElementById('mp-category')?.value || '',
+      image: document.getElementById('mp-image')?.value || '',
+      liveUrl: document.getElementById('mp-liveUrl')?.value || '',
+      githubUrl: document.getElementById('mp-githubUrl')?.value || '',
+      techStack: (document.getElementById('mp-techStack')?.value || '').split(',').map(s => s.trim()).filter(Boolean),
+      featured: document.getElementById('mp-featured')?.checked || false,
+      order: item.order ?? items.length,
+      createdAt: item.createdAt || new Date().toISOString(),
+    };
+    if (!state.draft.portfolioItems) state.draft.portfolioItems = [];
+    if (isNew) {
+      state.draft.portfolioItems.push(newItem);
+    } else {
+      state.draft.portfolioItems[idx] = newItem;
+    }
+    saveDraft();
+    renderPortfolioAdminList();
+  });
+}
+
+// ============================================================
+// 模块: 事件委托 — 统一处理所有按钮点击
+// ============================================================
+function initEventDelegation() {
+  document.addEventListener('click', (e) => {
+    const target = e.target;
+
+    // --- 社交链接 ---
+    if (target.closest('#btn-add-social')) {
+      if (!state.draft.personal) state.draft.personal = {};
+      if (!state.draft.personal.socialLinks) state.draft.personal.socialLinks = [];
+      state.draft.personal.socialLinks.push({ platform: 'GitHub', url: '', icon: 'github' });
+      saveDraft();
+      renderSocialLinks();
+    }
+    const delSocial = target.closest('[data-delete-social]');
+    if (delSocial) {
+      const idx = parseInt(delSocial.dataset.deleteSocial);
+      state.draft.personal.socialLinks.splice(idx, 1);
+      saveDraft();
+      renderSocialLinks();
+    }
+
+    // --- 工作经历 CRUD ---
+    if (target.closest('#btn-add-work')) { openWorkModal(-1); }
+    const editWork = target.closest('[data-edit-work]');
+    if (editWork) { openWorkModal(parseInt(editWork.dataset.editWork)); }
+    const delWork = target.closest('[data-delete-work]');
+    if (delWork) {
+      const idx = parseInt(delWork.dataset.deleteWork);
+      if (confirm('确定删除这条工作经历吗？')) {
+        state.draft.resume.workExperience.splice(idx, 1);
+        saveDraft(); renderWorkList();
+      }
+    }
+    const moveWork = target.closest('[data-move-work]');
+    if (moveWork) {
+      const idx = parseInt(moveWork.dataset.moveWork);
+      const dir = moveWork.dataset.dir;
+      const arr = state.draft.resume.workExperience;
+      if (dir === 'up' && idx > 0) { [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]]; }
+      if (dir === 'down' && idx < arr.length - 1) { [arr[idx], arr[idx+1]] = [arr[idx+1], arr[idx]]; }
+      saveDraft(); renderWorkList();
+    }
+
+    // --- 教育背景 CRUD ---
+    if (target.closest('#btn-add-edu')) { openEduModal(-1); }
+    const editEdu = target.closest('[data-edit-edu]');
+    if (editEdu) { openEduModal(parseInt(editEdu.dataset.editEdu)); }
+    const delEdu = target.closest('[data-delete-edu]');
+    if (delEdu) {
+      const idx = parseInt(delEdu.dataset.deleteEdu);
+      if (confirm('确定删除这条教育信息吗？')) {
+        state.draft.resume.education.splice(idx, 1);
+        saveDraft(); renderEduList();
+      }
+    }
+
+    // --- 技能 CRUD ---
+    if (target.closest('#btn-add-skill')) {
+      if (!state.draft.resume) state.draft.resume = {};
+      if (!state.draft.resume.skills) state.draft.resume.skills = [];
+      state.draft.resume.skills.push({ id: uid(), name: '', category: '', level: 80 });
+      saveDraft(); renderSkillList();
+    }
+    const delSkill = target.closest('[data-delete-skill]');
+    if (delSkill) {
+      const idx = parseInt(delSkill.dataset.deleteSkill);
+      state.draft.resume.skills.splice(idx, 1);
+      saveDraft(); renderSkillList();
+    }
+
+    // --- 分类 CRUD ---
+    if (target.closest('#btn-add-cat')) {
+      if (!state.draft.portfolioCategories) state.draft.portfolioCategories = [];
+      state.draft.portfolioCategories.push('新分类');
+      saveDraft(); renderCatList();
+    }
+    const delCat = target.closest('[data-delete-cat]');
+    if (delCat) {
+      const idx = parseInt(delCat.dataset.deleteCat);
+      const catName = state.draft.portfolioCategories[idx];
+      if (confirm(`确定删除分类「${catName}」吗？该分类下的项目将保留，但分类会变为空。`)) {
+        state.draft.portfolioCategories.splice(idx, 1);
+        saveDraft(); renderPortfolioTab();
+      }
+    }
+
+    // --- 项目 CRUD ---
+    if (target.closest('#btn-add-project')) { openProjectModal(-1); }
+    const editProj = target.closest('[data-edit-project]');
+    if (editProj) { openProjectModal(parseInt(editProj.dataset.editProject)); }
+    const delProj = target.closest('[data-delete-project]');
+    if (delProj) {
+      const idx = parseInt(delProj.dataset.deleteProject);
+      const title = state.draft.portfolioItems[idx]?.title || '未命名';
+      if (confirm(`确定删除项目「${title}」吗？`)) {
+        state.draft.portfolioItems.splice(idx, 1);
+        saveDraft(); renderPortfolioAdminList();
+      }
+    }
+    const moveProj = target.closest('[data-move-project]');
+    if (moveProj) {
+      const idx = parseInt(moveProj.dataset.moveProject);
+      const dir = moveProj.dataset.dir;
+      const arr = state.draft.portfolioItems;
+      if (dir === 'up' && idx > 0) { [arr[idx-1], arr[idx]] = [arr[idx], arr[idx-1]]; }
+      if (dir === 'down' && idx < arr.length - 1) { [arr[idx], arr[idx+1]] = [arr[idx+1], arr[idx]]; }
+      saveDraft(); renderPortfolioAdminList();
+    }
+  });
+
+  // --- 输入事件：自动保存草稿 ---
+  document.addEventListener('input', (e) => {
+    if (e.target.closest('[data-skill]')) { autoSaveDraft(); return; }
+    if (e.target.closest('[data-cat]')) { autoSaveDraft(); return; }
+    if (e.target.closest('[data-social]')) { autoSaveDraft(); return; }
+    if (e.target.closest('.tab-panel input, .tab-panel textarea, .tab-panel select')) {
+      autoSaveDraft();
+      return;
+    }
+  });
+
+  document.addEventListener('change', (e) => {
+    if (e.target.closest('.tab-panel')) { autoSaveDraft(); }
+  });
+}
+
+// ============================================================
+// 模块: 标签页切换
+// ============================================================
+function initTabs() {
+  const tabNav = document.querySelector('.tab-nav');
+  if (!tabNav) return;
+  tabNav.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    const tabName = btn.dataset.tab;
+    // 切换前保存当前标签页数据
+    saveCurrentTabData();
+    // 更新激活状态
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = $(`#tab-${tabName}`);
+    if (panel) panel.classList.add('active');
+    // 刷新目标面板
+    refreshTab(tabName);
+  });
+}
+
+/** 保存当前标签页的表单数据到草稿 */
+function saveCurrentTabData() {
+  try {
+    const full = collectFullFromForms();
+    state.draft = full;
+    saveDraftSilent();
+  } catch {}
+}
+
+/** 静默保存草稿（不更新 UI 状态） */
+function saveDraftSilent() {
+  try {
+    localStorage.setItem(CONFIG.STORAGE_KEYS.DRAFT, JSON.stringify(state.draft));
+  } catch {}
+}
+
+/** 刷新指定标签页 */
+function refreshTab(name) {
+  switch(name) {
+    case 'personal': renderPersonalTab(); break;
+    case 'resume': renderResumeTab(); break;
+    case 'portfolio': renderPortfolioTab(); break;
+    case 'contact': renderContactTab(); break;
+    case 'data': renderDataTab(); break;
+  }
+}
+
+// ============================================================
+// 模块: 数据管理页
+// ============================================================
+function renderDataTab() {
+  const full = collectFullFromForms();
+  $('#raw-json').value = JSON.stringify(full, null, 2);
+  $('#json-validation').textContent = '';
+}
+
+/** 校验 JSON 编辑器的内容 */
+function validateJson() {
+  try {
+    const parsed = JSON.parse($('#raw-json').value);
+    // 基础结构检查
+    const required = ['personal', 'resume', 'portfolioCategories', 'portfolioItems', 'contact'];
+    const missing = required.filter(k => !(k in parsed));
+    if (missing.length) {
+      $('#json-validation').innerHTML = `<span style="color:var(--warning);">⚠️ 缺少字段: ${missing.join(', ')}</span>`;
+      return null;
+    }
+    $('#json-validation').innerHTML = '<span style="color:var(--success);">✅ JSON 格式正确</span>';
+    return parsed;
+  } catch (e) {
+    $('#json-validation').innerHTML = `<span style="color:var(--danger);">❌ JSON 解析错误: ${escapeHTML(e.message)}</span>`;
+    return null;
+  }
+}
+
+// ============================================================
+// 模块: 导入 & 导出
+// ============================================================
+/** 下载备份 JSON 文件 */
+function downloadBackup() {
+  const full = collectFullFromForms();
+  const blob = new Blob([JSON.stringify(full, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `portfolio-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('备份已下载', 'success');
+}
+
+/** 从 JSON 文件恢复 */
+function restoreBackup(file) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const json = JSON.parse(e.target.result);
+      if (confirm('确定要恢复备份吗？当前未保存的更改将丢失。')) {
+        state.draft = json;
+        saveDraft(json);
+        refreshAllTabs();
+        showToast('备份已恢复', 'success');
+      }
+    } catch (err) {
+      showToast('文件解析失败: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/** 重置为默认模板 */
+function resetToDefaults() {
+  if (confirm('确定重置所有数据为默认模板吗？此操作不可撤销，建议先下载备份。')) {
+    state.draft = getDefaultData();
+    saveDraft(state.draft);
+    refreshAllTabs();
+    showToast('已重置为默认数据', 'info');
+  }
+}
+
+/** 刷新所有标签页 */
+function refreshAllTabs() {
+  renderPersonalTab();
+  renderResumeTab();
+  renderPortfolioTab();
+  renderContactTab();
+}
+
+// ============================================================
+// 模块: 设置面板
+// ============================================================
+function openSettings() {
+  const masterKey = getMasterKey();
+  const binId = getBinId();
+  const bodyHTML = `
+    <div class="form-group">
+      <label>JSONBin Master Key</label>
+      <input type="password" id="set-masterKey" value="${escapeHTML(masterKey)}" placeholder="从 JSONBin.io 获取你的 X-Master-Key">
+      <div class="form-hint">在 <a href="https://jsonbin.io/api-keys" target="_blank">jsonbin.io/api-keys</a> 获取（免费注册即可）</div>
+    </div>
+    <div class="form-group">
+      <label>Bin ID</label>
+      <input type="text" id="set-binId" value="${escapeHTML(binId)}" placeholder="首次保存后自动生成">
+      <div class="form-hint">首次点击「保存到 JSONBin」后会自动创建并填充此 ID</div>
+    </div>
+    <div class="form-group">
+      <label>修改密码</label>
+      <input type="password" id="set-newPassword" placeholder="留空不修改">
+    </div>
+  `;
+
+  openModal('⚙️ 设置', bodyHTML, () => {
+    const newKey = document.getElementById('set-masterKey')?.value || '';
+    const newBinId = document.getElementById('set-binId')?.value || '';
+    const newPassword = document.getElementById('set-newPassword')?.value || '';
+
+    if (newKey) localStorage.setItem(CONFIG.STORAGE_KEYS.MASTER_KEY, newKey);
+    if (newBinId) localStorage.setItem(CONFIG.STORAGE_KEYS.BIN_ID, newBinId);
+
+    if (newPassword) {
+      hashPassword(newPassword).then(hash => {
+        localStorage.setItem(CONFIG.STORAGE_KEYS.PASSWORD_HASH, hash);
+        showToast('密码已更新', 'success');
+      });
+    }
+
+    updateSyncStatus(state.syncStatus);
+    showToast('设置已保存', 'success');
+  });
+}
+
+// ============================================================
+// 模块: 主题切换
+// ============================================================
+function initAdminTheme() {
+  const btn = $('#btn-theme');
+  if (!btn) return;
+  updateAdminThemeIcon();
+  btn.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem(CONFIG.STORAGE_KEYS.DARK_MODE, isDark.toString());
+    updateAdminThemeIcon();
+  });
+}
+
+function updateAdminThemeIcon() {
+  const btn = $('#btn-theme');
+  if (btn) btn.textContent = document.documentElement.classList.contains('dark') ? '☀️' : '🌙';
+}
+
+// ============================================================
+// 模块: 默认模板数据
+// ============================================================
+function getDefaultData() {
+  return {
+    meta: { version: 1, lastUpdated: new Date().toISOString() },
+    personal: {
+      name: '张三', nameEn: 'Zhang San', title: '全栈工程师 / Full-Stack Engineer',
+      bio: '热爱技术与创造的全栈开发者，5 年 Web 开发经验，擅长 React 和 Node.js 生态。',
+      avatar: '', resumePdfUrl: '',
+      socialLinks: [
+        { platform: 'GitHub', url: 'https://github.com/', icon: 'github' },
+        { platform: 'Email', url: 'mailto:hello@example.com', icon: 'email' },
+      ]
+    },
+    resume: {
+      summary: '拥有 5 年全栈开发经验，主导过多个从 0 到 1 的产品研发。',
+      workExperience: [
+        { id: 'w1', company: '某科技有限公司', role: '高级前端工程师', startDate: '2022-03', endDate: null, current: true, description: '负责公司核心产品的前端架构设计与开发。', highlights: ['性能优化提升 40%', '从零搭建组件库'] },
+        { id: 'w2', company: '互联网初创公司', role: '前端工程师', startDate: '2020-07', endDate: '2022-02', current: false, description: '参与电商平台前端开发。', highlights: ['核心页面转化率提升 25%'] }
+      ],
+      education: [
+        { id: 'e1', school: '北京大学', degree: '计算机科学学士', startDate: '2016-09', endDate: '2020-06', gpa: '3.8/4.0' }
+      ],
+      skills: [
+        { id: 's1', name: 'React', category: '前端', level: 92 },
+        { id: 's2', name: 'TypeScript', category: '前端', level: 88 },
+        { id: 's3', name: 'Node.js', category: '后端', level: 85 },
+        { id: 's4', name: 'Python', category: '后端', level: 75 },
+        { id: 's5', name: 'Docker', category: '工具', level: 72 },
+      ]
+    },
+    portfolioCategories: ['全部', 'Web应用', '开源项目', '移动端'],
+    portfolioItems: [
+      { id: 'p1', title: '电商平台重构', description: '全栈重构遗留电商平台，性能提升 3 倍。', category: 'Web应用', image: '', liveUrl: 'https://example.com', githubUrl: 'https://github.com/', techStack: ['React','Node.js','PostgreSQL','Redis'], featured: true, order: 0, createdAt: new Date().toISOString() },
+      { id: 'p2', title: '开源组件库', description: '企业级 React 组件库，支持主题定制和国际化。', category: '开源项目', image: '', liveUrl: '', githubUrl: 'https://github.com/', techStack: ['React','TypeScript','Storybook'], featured: true, order: 1, createdAt: new Date().toISOString() },
+      { id: 'p3', title: '跨平台任务管理 App', description: '基于 React Native 的跨平台应用，支持实时同步。', category: '移动端', image: '', liveUrl: '', githubUrl: 'https://github.com/', techStack: ['React Native','Expo','Firebase'], featured: false, order: 2, createdAt: new Date().toISOString() }
+    ],
+    contact: {
+      email: 'hello@example.com', phone: '+86 138-0000-0000', wechat: 'zhangsan_wx',
+      location: '北京, 中国', locationEn: 'Beijing, China',
+      availableFor: '开放合作机会', responseTime: '24小时内回复'
+    }
+  };
+}
+
+// ============================================================
+// 模块: 初始化入口
+// ============================================================
+async function init() {
+  initAdminTheme();
+
+  // 检查认证状态
+  const storedHash = getStoredHash();
+  if (!storedHash) {
+    showLogin(true);  // 首次使用，需要设置密码
+  } else if (!checkLogin()) {
+    showLogin(false); // 需要输入密码
+  } else {
+    hideLogin();
+  }
+
+  // 登录表单提交处理
+  $('#login-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const password = $('#login-password').value;
+    if (!password) return;
+    const storedHash = getStoredHash();
+    if (!storedHash) {
+      // 首次设置密码
+      const hash = await hashPassword(password);
+      localStorage.setItem(CONFIG.STORAGE_KEYS.PASSWORD_HASH, hash);
+      hideLogin();
+      afterLogin();
+    } else {
+      // 验证密码
+      const inputHash = await hashPassword(password);
+      if (inputHash === storedHash) {
+        hideLogin();
+        afterLogin();
+      } else {
+        showToast('密码错误', 'error');
+      }
+    }
+  });
+
+  // 如果已登录，直接进入
+  if (checkLogin()) {
+    hideLogin();
+    afterLogin();
+  }
+}
+
+/** 登录成功后的初始化 */
+async function afterLogin() {
+  // 加载草稿
+  const hasDraft = loadDraft();
+  updateOriginalHash(state.draft);
+  updateSyncStatus(hasDraft ? 'unsaved' : 'idle');
+
+  // 尝试从 JSONBin 加载最新数据
+  const binId = getBinId();
+  if (binId) {
+    try {
+      const data = await readBin();
+      state.draft = data;
+      updateOriginalHash(data);
+      saveDraft(data);
+      updateSyncStatus('saved');
+      showToast('已从 JSONBin 加载最新数据', 'info');
+    } catch (err) {
+      console.warn('无法从 JSONBin 加载:', err.message);
+      updateSyncStatus('unsaved');
+    }
+  } else {
+    updateSyncStatus('idle');
+  }
+
+  // 渲染所有标签页
+  initTabs();
+  refreshAllTabs();
+  initEventDelegation();
+  updateSyncStatus(binId ? 'saved' : 'idle');
+
+  // ========== 保存按钮 ==========
+  $('#btn-save').addEventListener('click', async () => {
+    try {
+      saveCurrentTabData();
+      const full = collectFullFromForms();
+      state.draft = full;
+
+      if (!getMasterKey()) {
+        showToast('请先在设置中配置 JSONBin API Key', 'error');
+        openSettings();
+        return;
+      }
+
+      updateSyncStatus('saving');
+      const result = await saveToJsonBin(full);
+      state.draft = full;
+      updateOriginalHash(full);
+      updateSyncStatus('saved');
+
+      const newBinId = result.metadata?.id || getBinId();
+      if (newBinId) {
+        localStorage.setItem(CONFIG.STORAGE_KEYS.BIN_ID, newBinId);
+        $('#bin-info').textContent = `Bin: ${newBinId.substring(0,12)}...`;
+      }
+      showToast('已保存到 JSONBin！📌 请将 Bin ID 写入 index.html 的 CONFIG.JSONBIN_BIN_ID', 'success');
+    } catch (err) {
+      updateSyncStatus('error');
+      showToast('保存失败: ' + err.message, 'error');
+    }
+  });
+
+  // ========== 从 JSONBin 加载按钮 ==========
+  $('#btn-fetch').addEventListener('click', async () => {
+    if (!getBinId()) {
+      showToast('请先在设置中配置 Bin ID，或首次保存时自动生成', 'error');
+      return;
+    }
+    try {
+      updateSyncStatus('saving');
+      const data = await readBin();
+      if (confirm('从 JSONBin 加载数据将覆盖当前内容，确定继续？')) {
+        state.draft = data;
+        updateOriginalHash(data);
+        saveDraft(data);
+        refreshAllTabs();
+        updateSyncStatus('saved');
+        showToast('已加载最新数据', 'success');
+      }
+    } catch (err) {
+      updateSyncStatus('error');
+      showToast('加载失败: ' + err.message, 'error');
+    }
+  });
+
+  // ========== 设置按钮 ==========
+  $('#btn-settings').addEventListener('click', openSettings);
+
+  // ========== 数据管理页按钮 ==========
+  $('#btn-validate-json')?.addEventListener('click', validateJson);
+  $('#btn-apply-json')?.addEventListener('click', () => {
+    const parsed = validateJson();
+    if (parsed) {
+      if (confirm('确定应用 JSON 编辑器的内容吗？将覆盖当前所有表单数据。')) {
+        state.draft = parsed;
+        saveDraft(parsed);
+        refreshAllTabs();
+        updateSyncStatus('unsaved');
+        showToast('已应用 JSON 修改', 'success');
+      }
+    }
+  });
+
+  // ========== 导入导出 ==========
+  $('#btn-download-backup')?.addEventListener('click', downloadBackup);
+  $('#btn-restore-backup')?.addEventListener('click', () => $('#restore-file-input').click());
+  $('#restore-file-input')?.addEventListener('change', (e) => {
+    if (e.target.files[0]) restoreBackup(e.target.files[0]);
+    e.target.value = '';
+  });
+  $('#btn-reset-default')?.addEventListener('click', resetToDefaults);
+}
+
+// 页面加载完成后启动
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
